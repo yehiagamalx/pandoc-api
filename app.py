@@ -1,4 +1,5 @@
 import base64
+import hmac
 import os
 import subprocess
 import tempfile
@@ -9,13 +10,15 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 API_KEY = os.environ.get("PANDOC_API_KEY", "").strip()
+MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", 50 * 1024 * 1024))
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
 
 def _check_auth():
     if not API_KEY:
         return None
     provided = request.headers.get("X-API-Key", "").strip()
-    if provided != API_KEY:
+    if not hmac.compare_digest(provided, API_KEY):
         return jsonify({"error": "Unauthorized"}), 401
     return None
 
